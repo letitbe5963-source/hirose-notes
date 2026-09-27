@@ -1,0 +1,6 @@
+'use strict';
+const CACHE='hirose-notes-v1.1.0';
+const FILES=['./','./index.html','./style.css','./core.js','./app.js','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png'];
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('hirose-notes-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.method!=='GET'||u.origin!==self.location.origin)return;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),2500);event.respondWith(fetch(event.request,{signal:controller.signal}).then(response=>{clearTimeout(timer);return response;}).then(response=>{if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));}return response;}).catch(async()=>{clearTimeout(timer);const cached=await caches.match(event.request);return cached||(event.request.mode==='navigate'?await caches.match('./index.html'):new Response('Offline',{status:503}));}));});
